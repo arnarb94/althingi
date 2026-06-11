@@ -41,14 +41,26 @@ const { s } = Astro.props as { s: any };
         d.style.marginBottom = '0.5rem';
         const sum = document.createElement('summary');
         sum.style.cursor = 'pointer';
-        const counts = v.atkv
-          ? ` — já ${v.ja ?? 0}, nei ${v.nei ?? 0}, sat hjá ${v.sat_hja ?? 0}`
-          : '';
-        sum.innerHTML = `<strong>${v.mal ?? 'Óþekkt mál'}</strong> <span class="muted">(${
-          v.tegund ?? ''
-        }, ${v.timi ? v.timi.slice(0, 10) : ''})</span>${counts}${
-          v.nidurstada ? ` — <em>${v.nidurstada}</em>` : ''
-        }`;
+        const strong = document.createElement('strong');
+        strong.textContent = v.mal ?? 'Óþekkt mál';
+        sum.appendChild(strong);
+        const meta = document.createElement('span');
+        meta.className = 'muted';
+        meta.textContent = ` (${v.tegund ?? ''}, ${v.timi ? v.timi.slice(0, 10) : ''})`;
+        sum.appendChild(meta);
+        if (v.atkv) {
+          sum.appendChild(
+            document.createTextNode(
+              ` — já ${v.ja ?? 0}, nei ${v.nei ?? 0}, sat hjá ${v.sat_hja ?? 0}`
+            )
+          );
+        }
+        if (v.nidurstada) {
+          sum.appendChild(document.createTextNode(' — '));
+          const em = document.createElement('em');
+          em.textContent = v.nidurstada;
+          sum.appendChild(em);
+        }
         d.appendChild(sum);
         d.addEventListener('toggle', () => {
           if (!d.open || d.dataset.done) return;
@@ -59,7 +71,15 @@ const { s } = Astro.props as { s: any };
             body.textContent = 'Engin atkvæðaskrá (t.d. mál gengur áfram með yfirlýsingu forseta).';
           } else {
             const table = document.createElement('table');
-            table.innerHTML = '<thead><tr><th>Þingmaður</th><th>Flokkur</th><th>Atkvæði</th></tr></thead>';
+            const thead = document.createElement('thead');
+            const hr = document.createElement('tr');
+            for (const h of ['Þingmaður', 'Flokkur', 'Atkvæði']) {
+              const th = document.createElement('th');
+              th.textContent = h;
+              hr.appendChild(th);
+            }
+            thead.appendChild(hr);
+            table.appendChild(thead);
             const tb = document.createElement('tbody');
             const entries = Object.entries(v.atkv).sort((a, b) =>
               (data.menn[a[0]]?.n ?? '').localeCompare(data.menn[b[0]]?.n ?? '', 'is')
@@ -67,9 +87,17 @@ const { s } = Astro.props as { s: any };
             for (const [mid, code] of entries) {
               const tr = document.createElement('tr');
               const man = data.menn[mid] ?? {};
-              tr.innerHTML = `<td><a href="/thingmenn/${mid}/">${man.n ?? mid}</a></td><td>${
-                man.f ?? '–'
-              }</td><td class="${VOTE_CLASS[code]}">${VOTE_LABEL[code]}</td>`;
+              const tdName = document.createElement('td');
+              const link = document.createElement('a');
+              link.href = `/thingmenn/${encodeURIComponent(mid)}/`;
+              link.textContent = man.n ?? mid;
+              tdName.appendChild(link);
+              const tdParty = document.createElement('td');
+              tdParty.textContent = man.f ?? '–';
+              const tdVote = document.createElement('td');
+              tdVote.className = VOTE_CLASS[code];
+              tdVote.textContent = VOTE_LABEL[code];
+              tr.append(tdName, tdParty, tdVote);
               tb.appendChild(tr);
             }
             table.appendChild(tb);

@@ -215,7 +215,7 @@ def load_speeches(con, first, last):
 
 
 def main():
-    first = int(sys.argv[1]) if len(sys.argv) > 1 else 131
+    first = int(sys.argv[1]) if len(sys.argv) > 1 else 148
     last = int(sys.argv[2]) if len(sys.argv) > 2 else 157
     DB.parent.mkdir(parents=True, exist_ok=True)
     con = sqlite3.connect(DB)

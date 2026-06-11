@@ -1,7 +1,7 @@
 # Alþingisgögn
 
 Óopinber vefur byggður á [opnum gögnum Alþingis](https://www.althingi.is/altext/xml/):
-þingmenn, þingflokkar, atkvæðagreiðslur, ræðutími og mæting frá 131. löggjafarþingi (2004) til dagsins í dag.
+þingmenn, þingflokkar, atkvæðagreiðslur, ræðutími og mæting frá 148. löggjafarþingi (2017) til dagsins í dag.
 
 ## Uppbygging
 
@@ -17,11 +17,11 @@
 ## Keyrsla
 
 ```bash
-# 1. Sækja gögn (tekur dágóða stund í fyrsta sinn, ~25 þúsund skrár)
-python3 etl/scrape.py 131 157
+# 1. Sækja gögn (tekur dágóða stund í fyrsta sinn)
+python3 etl/scrape.py 148 157
 
 # 2. Byggja gagnagrunn
-python3 etl/build_db.py 131 157
+python3 etl/build_db.py 148 157
 
 # 3. Skrifa JSON fyrir vefinn
 python3 etl/export_json.py

@@ -28,6 +28,8 @@ def fetch(url: str, dest: Path, force: bool = False) -> Path:
             return dest
         except urllib.error.HTTPError as e:
             if e.code == 429:
+                if attempt == 7:
+                    raise
                 time.sleep(15 + 10 * attempt)
             elif attempt == 7:
                 raise
@@ -93,7 +95,7 @@ def fetch_members(lthing_range) -> None:
 
 
 def main() -> None:
-    first = int(sys.argv[1]) if len(sys.argv) > 1 else 131
+    first = int(sys.argv[1]) if len(sys.argv) > 1 else 148
     last = int(sys.argv[2]) if len(sys.argv) > 2 else 157
     fetch(f"{BASE}/loggjafarthing/", CACHE / "loggjafarthing.xml", force=True)
     fetch(f"{BASE}/thingflokkar/", CACHE / "thingflokkar.xml", force=True)
