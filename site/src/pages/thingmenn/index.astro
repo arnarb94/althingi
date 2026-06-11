@@ -1,0 +1,60 @@
+---
+import Base from '../../layouts/Base.astro';
+import members from '../../data/members.json';
+import { latestSeat, memberTotals, fmtTime, pct, type Member } from '../../lib/util';
+
+const ms = (members as Member[]).map((m) => {
+  const seat = latestSeat(m);
+  const t = memberTotals(m);
+  return { m, seat, t };
+});
+const parties = [...new Set(ms.map((x) => x.seat.flokkur).filter(Boolean))].sort() as string[];
+---
+<Base title="Þingmenn">
+  <h1>Þingmenn</h1>
+  <p class="muted">Allir sem hafa setið á Alþingi á tímabilinu, ásamt samanlagðri tölfræði. Smelltu á nafn fyrir nánari upplýsingar.</p>
+  <div class="controls">
+    <input type="search" id="leit" placeholder="Leita að nafni…" />
+    <select id="flokkur">
+      <option value="">Allir flokkar</option>
+      {parties.map((p) => <option value={p}>{p}</option>)}
+    </select>
+  </div>
+  <table id="tafla">
+    <thead>
+      <tr>
+        <th>Nafn</th><th>Flokkur (síðast)</th><th>Kjördæmi</th>
+        <th class="num">Þing</th><th class="num">Ræður</th>
+        <th class="num">Ræðutími</th><th class="num">Mæting</th>
+      </tr>
+    </thead>
+    <tbody>
+      {ms.map(({ m, seat, t }) => (
+        <tr data-nafn={m.nafn.toLowerCase()} data-flokkur={seat.flokkur ?? ''}>
+          <td><a href={`/thingmenn/${m.id}/`}>{m.nafn}</a></td>
+          <td>{seat.flokkur ?? '–'}</td>
+          <td>{seat.kjordaemi ?? '–'}</td>
+          <td class="num">{m.thing.length}</td>
+          <td class="num">{t.speeches.toLocaleString('is')}</td>
+          <td class="num">{fmtTime(t.seconds)}</td>
+          <td class="num">{pct(t.maeting)}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+  <script>
+    const leit = document.getElementById('leit') as HTMLInputElement;
+    const flokkur = document.getElementById('flokkur') as HTMLSelectElement;
+    const rows = Array.from(document.querySelectorAll<HTMLTableRowElement>('#tafla tbody tr'));
+    function apply() {
+      const q = leit.value.toLowerCase().trim();
+      const f = flokkur.value;
+      for (const r of rows) {
+        const ok = (!q || r.dataset.nafn!.includes(q)) && (!f || r.dataset.flokkur === f);
+        r.style.display = ok ? '' : 'none';
+      }
+    }
+    leit.addEventListener('input', apply);
+    flokkur.addEventListener('change', apply);
+  </script>
+</Base>

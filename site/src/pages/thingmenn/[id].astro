@@ -1,0 +1,75 @@
+---
+import Base from '../../layouts/Base.astro';
+import members from '../../data/members.json';
+import { memberTotals, latestSeat, fmtTime, pct, type Member } from '../../lib/util';
+
+export function getStaticPaths() {
+  return (members as Member[]).map((m) => ({ params: { id: String(m.id) }, props: { m } }));
+}
+const { m } = Astro.props as { m: Member };
+const t = memberTotals(m);
+const seat = latestSeat(m);
+const maxSeconds = Math.max(...m.thing.map((p) => p.seconds), 1);
+---
+<Base title={m.nafn}>
+  <h1>{m.nafn}</h1>
+  <p class="muted">
+    {m.faedingardagur && <>f. {m.faedingardagur} · </>}
+    {seat.flokkur && <span class="pill">{seat.flokkur}</span>}
+    {seat.kjordaemi && <> {seat.kjordaemi}</>}
+    · <a href={`https://www.althingi.is/altext/cv/is/?nfaerslunr=${m.id}`}>Æviágrip á althingi.is</a>
+  </p>
+
+  <div class="stat-grid">
+    <div class="stat"><div class="v">{m.thing.length}</div><div class="l">löggjafarþing</div></div>
+    <div class="stat"><div class="v">{t.speeches.toLocaleString('is')}</div><div class="l">ræður</div></div>
+    <div class="stat"><div class="v">{fmtTime(t.seconds)}</div><div class="l">ræðutími samtals</div></div>
+    <div class="stat"><div class="v">{pct(t.maeting)}</div><div class="l">mæting í atkvæðagreiðslur</div></div>
+  </div>
+
+  <h2>Eftir þingum</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Þing</th><th>Flokkur</th><th>Hlutverk</th>
+        <th class="num">Ræður</th><th class="num">Ræðutími</th>
+        <th class="num">Já</th><th class="num">Nei</th><th class="num">Sat hjá</th>
+        <th class="num">Fjarvist</th><th class="num">Mæting</th><th class="num">Með flokki</th>
+      </tr>
+    </thead>
+    <tbody>
+      {[...m.thing].reverse().map((p) => (
+        <tr>
+          <td><a href={`/atkvaedagreidslur/${p.lthing}/`}>{p.lthing}.</a></td>
+          <td>{p.flokkur ?? '–'}</td>
+          <td>{p.tegund ?? '–'}</td>
+          <td class="num">{p.speeches.toLocaleString('is')}</td>
+          <td class="num">{fmtTime(p.seconds)}</td>
+          <td class="num v-ja">{p.ja}</td>
+          <td class="num v-nei">{p.nei}</td>
+          <td class="num v-hja">{p.sat_hja}</td>
+          <td class="num">{p.bodadi_fjarvist + p.fjarverandi}</td>
+          <td class="num">{pct(p.maeting)}</td>
+          <td class="num">{pct(p.med_flokki)}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+  <p class="muted">
+    „Mæting“ = hlutfall atkvæðagreiðslna þar sem þingmaðurinn var viðstaddur (já, nei eða sat hjá).
+    „Með flokki“ = hlutfall já/nei-atkvæða sem féllu með meirihluta eigin þingflokks.
+  </p>
+
+  <h2>Ræðutími eftir þingum</h2>
+  <table>
+    <tbody>
+      {m.thing.map((p) => (
+        <tr>
+          <td style="width:4rem">{p.lthing}.</td>
+          <td><div class="bar"><span style={`width:${(p.seconds / maxSeconds) * 100}%`}></span></div></td>
+          <td class="num" style="width:8rem">{fmtTime(p.seconds)}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</Base>

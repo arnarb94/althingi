@@ -1,0 +1,101 @@
+---
+import Base from '../../layouts/Base.astro';
+import sessions from '../../data/sessions.json';
+
+export function getStaticPaths() {
+  return (sessions as any[]).map((s) => ({ params: { lthing: String(s.num) }, props: { s } }));
+}
+const { s } = Astro.props as { s: any };
+---
+<Base title={`Atkvæðagreiðslur ${s.num}. þings`}>
+  <h1>Atkvæðagreiðslur – {s.num}. löggjafarþing ({s.period})</h1>
+  <div class="controls">
+    <input type="search" id="leit" placeholder="Leita að máli…" />
+    <label><input type="checkbox" id="adeins-atkv" /> Aðeins atkvæðagreiðslur með atkvæðaskrá</label>
+  </div>
+  <div id="listi" class="muted">Sæki gögn…</div>
+
+  <template id="row-template"></template>
+  <script define:vars={{ lthing: s.num }}>
+    const VOTE_LABEL = { j: 'já', n: 'nei', g: 'sat hjá', b: 'boðaði fjarvist', f: 'fjarverandi' };
+    const VOTE_CLASS = { j: 'v-ja', n: 'v-nei', g: 'v-hja', b: 'muted', f: 'muted' };
+    const el = document.getElementById('listi');
+    let data;
+
+    function render() {
+      const q = document.getElementById('leit').value.toLowerCase().trim();
+      const only = document.getElementById('adeins-atkv').checked;
+      const rows = data.atkvaedagreidslur.filter(
+        (v) => (!q || (v.mal || '').toLowerCase().includes(q)) && (!only || v.atkv)
+      );
+      el.classList.remove('muted');
+      el.innerHTML = '';
+      const frag = document.createDocumentFragment();
+      const info = document.createElement('p');
+      info.className = 'muted';
+      info.textContent = `${rows.length} atkvæðagreiðslur`;
+      frag.appendChild(info);
+      for (const v of rows.slice(0, 500)) {
+        const d = document.createElement('details');
+        d.className = 'card';
+        d.style.marginBottom = '0.5rem';
+        const sum = document.createElement('summary');
+        sum.style.cursor = 'pointer';
+        const counts = v.atkv
+          ? ` — já ${v.ja ?? 0}, nei ${v.nei ?? 0}, sat hjá ${v.sat_hja ?? 0}`
+          : '';
+        sum.innerHTML = `<strong>${v.mal ?? 'Óþekkt mál'}</strong> <span class="muted">(${
+          v.tegund ?? ''
+        }, ${v.timi ? v.timi.slice(0, 10) : ''})</span>${counts}${
+          v.nidurstada ? ` — <em>${v.nidurstada}</em>` : ''
+        }`;
+        d.appendChild(sum);
+        d.addEventListener('toggle', () => {
+          if (!d.open || d.dataset.done) return;
+          d.dataset.done = '1';
+          const body = document.createElement('div');
+          if (!v.atkv) {
+            body.className = 'muted';
+            body.textContent = 'Engin atkvæðaskrá (t.d. mál gengur áfram með yfirlýsingu forseta).';
+          } else {
+            const table = document.createElement('table');
+            table.innerHTML = '<thead><tr><th>Þingmaður</th><th>Flokkur</th><th>Atkvæði</th></tr></thead>';
+            const tb = document.createElement('tbody');
+            const entries = Object.entries(v.atkv).sort((a, b) =>
+              (data.menn[a[0]]?.n ?? '').localeCompare(data.menn[b[0]]?.n ?? '', 'is')
+            );
+            for (const [mid, code] of entries) {
+              const tr = document.createElement('tr');
+              const man = data.menn[mid] ?? {};
+              tr.innerHTML = `<td><a href="/thingmenn/${mid}/">${man.n ?? mid}</a></td><td>${
+                man.f ?? '–'
+              }</td><td class="${VOTE_CLASS[code]}">${VOTE_LABEL[code]}</td>`;
+              tb.appendChild(tr);
+            }
+            table.appendChild(tb);
+            body.appendChild(table);
+          }
+          d.appendChild(body);
+        });
+        frag.appendChild(d);
+      }
+      if (rows.length > 500) {
+        const more = document.createElement('p');
+        more.className = 'muted';
+        more.textContent = `Sýni fyrstu 500 af ${rows.length} — notaðu leitina til að þrengja.`;
+        frag.appendChild(more);
+      }
+      el.appendChild(frag);
+    }
+
+    fetch(`/data/votes_${lthing}.json`)
+      .then((r) => r.json())
+      .then((d) => {
+        data = d;
+        render();
+        document.getElementById('leit').addEventListener('input', render);
+        document.getElementById('adeins-atkv').addEventListener('change', render);
+      })
+      .catch(() => (el.textContent = 'Ekki tókst að sækja gögn.'));
+  </script>
+</Base>

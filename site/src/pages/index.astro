@@ -1,0 +1,53 @@
+---
+import Base from '../layouts/Base.astro';
+import members from '../data/members.json';
+import sessions from '../data/sessions.json';
+import parties from '../data/parties.json';
+import { memberTotals, fmtTime, pct, type Member } from '../lib/util';
+
+const ms = members as Member[];
+const latest = Math.max(...(sessions as any[]).map((s) => s.num));
+const current = ms.filter((m) =>
+  m.thing.some((p) => p.lthing === latest && p.tegund !== 'varamaður')
+);
+const talkers = [...ms]
+  .map((m) => ({ m, t: memberTotals(m) }))
+  .sort((a, b) => b.t.seconds - a.t.seconds)
+  .slice(0, 10);
+const totalVotes = ms.reduce((s, m) => s + memberTotals(m).atkvaedi_alls, 0);
+---
+<Base title="Forsíða">
+  <h1>Alþingi í tölum</h1>
+  <p>
+    Óopinber vefur byggður á <a href="https://www.althingi.is/altext/xml/">opnum gögnum Alþingis</a>:
+    þingmenn, þingflokkar, atkvæðagreiðslur, ræðutími og mæting frá {(sessions as any[])[0].num}. þingi
+    ({(sessions as any[])[0].period}) til {latest}. þings.
+  </p>
+  <div class="stat-grid">
+    <div class="stat"><div class="v">{ms.length}</div><div class="l">þingmenn og varamenn</div></div>
+    <div class="stat"><div class="v">{(sessions as any[]).length}</div><div class="l">löggjafarþing</div></div>
+    <div class="stat"><div class="v">{(parties as any[]).length}</div><div class="l">þingflokkar</div></div>
+    <div class="stat"><div class="v">{current.length}</div><div class="l">aðalmenn á {latest}. þingi</div></div>
+  </div>
+
+  <h2>Mest töluðu þingmennirnir (samtals)</h2>
+  <table>
+    <thead><tr><th>Þingmaður</th><th class="num">Ræður</th><th class="num">Ræðutími</th></tr></thead>
+    <tbody>
+      {talkers.map(({ m, t }) => (
+        <tr>
+          <td><a href={`/thingmenn/${m.id}/`}>{m.nafn}</a></td>
+          <td class="num">{t.speeches.toLocaleString('is')}</td>
+          <td class="num">{fmtTime(t.seconds)}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+
+  <h2>Skoðaðu nánar</h2>
+  <div class="cards">
+    <a class="card" href="/thingmenn/"><h3>Þingmenn</h3><span class="muted">Mæting, ræðutími og atkvæði hvers þingmanns</span></a>
+    <a class="card" href="/flokkar/"><h3>Þingflokkar</h3><span class="muted">Samanburður flokka eftir þingum</span></a>
+    <a class="card" href="/atkvaedagreidslur/"><h3>Atkvæðagreiðslur</h3><span class="muted">Allar atkvæðagreiðslur með atkvæðum hvers þingmanns</span></a>
+  </div>
+</Base>

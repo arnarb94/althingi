@@ -1,0 +1,86 @@
+---
+import Base from '../../layouts/Base.astro';
+import parties from '../../data/parties.json';
+import members from '../../data/members.json';
+import { fmtTime, pct, type Member } from '../../lib/util';
+
+export function getStaticPaths() {
+  return (parties as any[])
+    .filter((p) => p.heiti)
+    .map((p) => ({ params: { id: String(p.id) }, props: { p } }));
+}
+const { p } = Astro.props as { p: any };
+
+const memberRows = (members as Member[])
+  .map((m) => {
+    const inParty = m.thing.filter((s) => s.flokkur_id === p.id);
+    if (inParty.length === 0) return null;
+    const t = inParty.reduce(
+      (a, s) => ({
+        speeches: a.speeches + s.speeches,
+        seconds: a.seconds + s.seconds,
+        present: a.present + s.ja + s.nei + s.sat_hja,
+        votes: a.votes + s.atkvaedi_alls,
+      }),
+      { speeches: 0, seconds: 0, present: 0, votes: 0 }
+    );
+    return {
+      m,
+      lthings: inParty.map((s) => s.lthing),
+      ...t,
+      maeting: t.votes ? t.present / t.votes : null,
+    };
+  })
+  .filter((x) => x !== null)
+  .sort((a, b) => b!.seconds - a!.seconds);
+---
+<Base title={p.heiti}>
+  <h1>{p.heiti}</h1>
+  {p.skammstofun && <p class="muted">Skammstöfun: {p.skammstofun}</p>}
+
+  <h2>Eftir þingum</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Þing</th><th class="num">Fulltrúar</th><th class="num">Ræður</th>
+        <th class="num">Ræðutími</th><th class="num">Já</th><th class="num">Nei</th>
+        <th class="num">Sat hjá</th><th class="num">Mæting</th>
+      </tr>
+    </thead>
+    <tbody>
+      {[...p.thing].reverse().map((s: any) => (
+        <tr>
+          <td><a href={`/atkvaedagreidslur/${s.lthing}/`}>{s.lthing}.</a></td>
+          <td class="num">{s.members}</td>
+          <td class="num">{s.speeches.toLocaleString('is')}</td>
+          <td class="num">{fmtTime(s.seconds)}</td>
+          <td class="num v-ja">{s.ja.toLocaleString('is')}</td>
+          <td class="num v-nei">{s.nei.toLocaleString('is')}</td>
+          <td class="num v-hja">{s.sat_hja.toLocaleString('is')}</td>
+          <td class="num">{pct(s.maeting)}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+
+  <h2>Þingmenn flokksins á tímabilinu</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Nafn</th><th>Þing</th><th class="num">Ræður</th>
+        <th class="num">Ræðutími</th><th class="num">Mæting</th>
+      </tr>
+    </thead>
+    <tbody>
+      {memberRows.map((r: any) => (
+        <tr>
+          <td><a href={`/thingmenn/${r.m.id}/`}>{r.m.nafn}</a></td>
+          <td class="muted">{r.lthings.join(', ')}</td>
+          <td class="num">{r.speeches.toLocaleString('is')}</td>
+          <td class="num">{fmtTime(r.seconds)}</td>
+          <td class="num">{pct(r.maeting)}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</Base>
