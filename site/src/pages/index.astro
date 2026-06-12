@@ -71,7 +71,7 @@ const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
     const tbody = document.querySelector('#talkers tbody');
     const original = tbody.innerHTML;
     const fmt = (sec) => {
-      const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60);
+      const totalMin = Math.round(sec / 60), h = Math.floor(totalMin / 60), m = totalMin % 60;
       return h > 0 ? `${h} klst ${m} mín` : `${m} mín`;
     };
     sel.addEventListener('change', () => {
