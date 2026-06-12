@@ -9,7 +9,7 @@ interface Props { lthing: number; }
 const { lthing } = Astro.props;
 
 interface PartySession {
-  lthing: number; members: number; speeches: number; seconds: number;
+  lthing: number; members: number; seats: number; speeches: number; seconds: number;
   ja: number; nei: number; sat_hja: number; bodadi_fjarvist: number;
   fjarverandi: number; maeting: number | null;
 }
@@ -37,7 +37,8 @@ const partyRows = (parties as Party[])
   .filter((x): x is { f: Party; p: PartySession } => x.p != null)
   .sort((a, b) => b.p.seconds - a.p.seconds);
 const maxPartySec = Math.max(...partyRows.map((x) => x.p.seconds), 1);
-const maxPartyMembers = Math.max(...partyRows.map((x) => x.p.members), 1);
+const seatRows = partyRows.filter((x) => x.p.seats > 0).sort((a, b) => b.p.seats - a.p.seats);
+const maxPartySeats = Math.max(...seatRows.map((x) => x.p.seats), 1);
 
 const trend = ss
   .map((s) => {
@@ -71,13 +72,14 @@ const maxTrendSec = Math.max(...trend.map((t) => t.seconds), 1);
 </table>
 
 <h2>Þingsæti eftir flokkum</h2>
+<p class="muted">Sætaskipan við lok þingsins (63 sæti alls). Varamenn ekki taldir með.</p>
 <table class="chart">
   <tbody>
-    {[...partyRows].sort((a, b) => b.p.members - a.p.members).map(({ f, p }, i) => (
+    {seatRows.map(({ f, p }, i) => (
       <tr>
         <td class="label"><a href={`/flokkar/${f.id}/`}>{f.heiti}</a></td>
-        <td><div class="bar"><span style={`width:${(p.members / maxPartyMembers) * 100}%;background:${PALETTE[i % PALETTE.length]}`}></span></div></td>
-        <td class="num val">{p.members}</td>
+        <td><div class="bar"><span style={`width:${(p.seats / maxPartySeats) * 100}%;background:${PALETTE[i % PALETTE.length]}`}></span></div></td>
+        <td class="num val">{p.seats}</td>
       </tr>
     ))}
   </tbody>

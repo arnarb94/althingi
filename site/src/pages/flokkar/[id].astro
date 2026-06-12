@@ -42,7 +42,7 @@ const memberRows = (members as Member[])
   <table>
     <thead>
       <tr>
-        <th>Þing</th><th class="num">Fulltrúar</th><th class="num">Ræður</th>
+        <th>Þing</th><th class="num">Þingsæti</th><th class="num">Allir fulltrúar</th><th class="num">Ræður</th>
         <th class="num">Ræðutími</th><th class="num">Já</th><th class="num">Nei</th>
         <th class="num">Sat hjá</th><th class="num">Mæting</th>
       </tr>
@@ -51,6 +51,7 @@ const memberRows = (members as Member[])
       {[...p.thing].reverse().map((s: any) => (
         <tr>
           <td><a href={`/atkvaedagreidslur/${s.lthing}/`}>{s.lthing}.</a></td>
+          <td class="num">{s.seats > 0 ? s.seats : '–'}</td>
           <td class="num">{s.members}</td>
           <td class="num">{s.speeches.toLocaleString('is')}</td>
           <td class="num">{fmtTime(s.seconds)}</td>

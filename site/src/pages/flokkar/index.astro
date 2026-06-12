@@ -5,7 +5,7 @@ import sessions from '../../data/sessions.json';
 import { fmtTime, pct } from '../../lib/util';
 
 interface PartySession {
-  lthing: number; members: number; speeches: number; seconds: number;
+  lthing: number; members: number; seats: number; speeches: number; seconds: number;
   ja: number; nei: number; sat_hja: number; bodadi_fjarvist: number;
   fjarverandi: number; maeting: number | null;
 }
@@ -21,7 +21,7 @@ const totals = ps.map((p) => {
   const cur = p.thing.find((s) => s.lthing === latest);
   return { p, t, cur };
 });
-totals.sort((a, b) => (b.cur?.members ?? 0) - (a.cur?.members ?? 0) || b.t.seconds - a.t.seconds);
+totals.sort((a, b) => (b.cur?.seats ?? 0) - (a.cur?.seats ?? 0) || b.t.seconds - a.t.seconds);
 ---
 <Base title="Þingflokkar">
   <h1>Þingflokkar</h1>
@@ -29,7 +29,7 @@ totals.sort((a, b) => (b.cur?.members ?? 0) - (a.cur?.members ?? 0) || b.t.secon
   <table>
     <thead>
       <tr>
-        <th>Flokkur</th><th class="num">Fulltrúar á {latest}. þingi</th>
+        <th>Flokkur</th><th class="num">Þingsæti á {latest}. þingi</th>
         <th class="num">Þing alls</th><th class="num">Ræður alls</th>
         <th class="num">Ræðutími alls</th><th class="num">Mæting ({latest}. þing)</th>
       </tr>
@@ -38,7 +38,7 @@ totals.sort((a, b) => (b.cur?.members ?? 0) - (a.cur?.members ?? 0) || b.t.secon
       {totals.map(({ p, t, cur }) => (
         <tr>
           <td><a href={`/flokkar/${p.id}/`}>{p.heiti}</a></td>
-          <td class="num">{cur ? cur.members : '–'}</td>
+          <td class="num">{cur && cur.seats > 0 ? cur.seats : '–'}</td>
           <td class="num">{p.thing.length}</td>
           <td class="num">{t.speeches.toLocaleString('is')}</td>
           <td class="num">{fmtTime(t.seconds)}</td>

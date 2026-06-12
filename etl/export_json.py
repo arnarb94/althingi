@@ -10,6 +10,7 @@ Skrifar:
 import json
 import sqlite3
 from collections import defaultdict
+from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
@@ -33,6 +34,29 @@ def main() -> None:
     dump(SRC_DATA / "sessions.json", sessions)
 
     members = {r["id"]: dict(r) for r in con.execute("SELECT * FROM members")}
+
+    # þingsæti við lok þings: aðalmenn sem sátu á viðmiðunardegi (síðasti skráði
+    # útgöngudagur þingsins, eða í dag fyrir yfirstandandi þing) — alltaf 63 sæti
+    def pdate(s):
+        d, m, y = s.split(".")
+        return date(int(y), int(m), int(d))
+
+    main_seats = defaultdict(list)  # lthing -> [(member_id, party_id, date_in, date_out)]
+    for r in con.execute("SELECT lthing, member_id, party_id, date_in, date_out FROM seats WHERE type != 'varamaður'"):
+        main_seats[r["lthing"]].append(
+            (r["member_id"], r["party_id"],
+             pdate(r["date_in"]) if r["date_in"] else None,
+             pdate(r["date_out"]) if r["date_out"] else None)
+        )
+    party_seats = defaultdict(lambda: defaultdict(int))  # lthing -> party_id -> sæti
+    for lt, rows_ in main_seats.items():
+        ref = max((o for _, _, _, o in rows_ if o), default=None) or date.today()
+        holders = {}
+        for mid, pid, i, o in rows_:
+            if i and i <= ref and (o is None or o >= ref):
+                holders[mid] = pid
+        for pid in holders.values():
+            party_seats[lt][pid] += 1
 
     # þingseta: flokkur/kjördæmi hvers þingmanns á hverju þingi
     seat = {}  # (mid, lthing) -> seatrow
@@ -149,12 +173,14 @@ def main() -> None:
     for pid, per in party_sessions.items():
         p = parties.get(pid, {})
         rows = []
-        for lt in sorted(per):
+        lthings = set(per) | {lt for lt, by_party in party_seats.items() if by_party.get(pid)}
+        for lt in sorted(lthings):
             a = per[lt]
             total = a["ja"] + a["nei"] + a["sat_hja"] + a["bodadi_fjarvist"] + a["fjarverandi"]
             present = a["ja"] + a["nei"] + a["sat_hja"]
             rows.append({
                 "lthing": lt, "members": len(a["members"]),
+                "seats": party_seats[lt].get(pid, 0),
                 "speeches": a["speeches"], "seconds": a["seconds"],
                 **{k: a[k] for k in ("ja", "nei", "sat_hja", "bodadi_fjarvist", "fjarverandi")},
                 "maeting": round(present / total, 4) if total else None,
