@@ -1,0 +1,98 @@
+---
+import { url } from '../lib/util';
+interface Props { title: string; }
+const { title } = Astro.props;
+---
+<!doctype html>
+<html lang="is">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} – Alþingisgögn</title>
+    <meta name="description" content="Opin gögn Alþingis: þingmenn, atkvæðagreiðslur, ræður og mæting." />
+  </head>
+  <body>
+    <header class="site-header">
+      <nav>
+        <a href={url('/')} class="brand">Alþingisgögn</a>
+        <a href={url('/thingmenn/')}>Þingmenn</a>
+        <a href={url('/flokkar/')}>Þingflokkar</a>
+        <a href={url('/atkvaedagreidslur/')}>Atkvæðagreiðslur</a>
+        <a href={url('/mal/')}>Þingmál</a>
+        <a href={url('/tolfraedi/')}>Tölfræði</a>
+      </nav>
+    </header>
+    <main>
+      <slot />
+    </main>
+    <footer class="site-footer">
+      Gögn frá <a href="https://www.althingi.is/altext/xml/">opnum gögnum Alþingis</a>.
+      Uppfært daglega. Þetta er óopinber vefur.
+    </footer>
+  </body>
+</html>
+<style is:global>
+  :root {
+    --ink: #1b1b1f;
+    --paper: #faf8f4;
+    --accent: #1e4f8f;
+    --green: #2c7a3f;
+    --red: #b03030;
+    --grey: #8a8a8f;
+    --line: #e2ddd3;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.55;
+  }
+  main { max-width: 1100px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+  a { color: var(--accent); }
+  h1 { font-size: 1.7rem; margin: 0.5rem 0 1rem; }
+  h2 { font-size: 1.2rem; margin: 2rem 0 0.6rem; }
+  .site-header { border-bottom: 2px solid var(--ink); background: #fff; }
+  .site-header nav {
+    max-width: 1100px; margin: 0 auto; padding: 0.7rem 1rem;
+    display: flex; gap: 1.2rem; align-items: center; flex-wrap: wrap;
+  }
+  .site-header a { text-decoration: none; color: var(--ink); font-weight: 500; }
+  .site-header a:hover { color: var(--accent); }
+  .brand { font-weight: 700; font-size: 1.1rem; margin-right: 1rem; }
+  .site-footer {
+    max-width: 1100px; margin: 0 auto; padding: 1rem;
+    border-top: 1px solid var(--line); color: var(--grey); font-size: 0.85rem;
+  }
+  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+  th, td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid var(--line); }
+  th { font-weight: 600; white-space: nowrap; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .muted { color: var(--grey); }
+  .pill {
+    display: inline-block; padding: 0.05rem 0.5rem; border-radius: 999px;
+    font-size: 0.8rem; background: #eee9df; white-space: nowrap;
+  }
+  .bar { background: #eee9df; border-radius: 4px; height: 0.6rem; overflow: hidden; }
+  .bar > span { display: block; height: 100%; background: var(--accent); }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0.8rem; }
+  .card {
+    background: #fff; border: 1px solid var(--line); border-radius: 8px;
+    padding: 0.8rem 1rem; text-decoration: none; color: inherit; display: block;
+  }
+  .card:hover { border-color: var(--accent); }
+  .card h3 { margin: 0 0 0.2rem; font-size: 1rem; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.8rem; margin: 1rem 0; }
+  .stat { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 0.7rem 0.9rem; }
+  .stat .v { font-size: 1.4rem; font-weight: 700; }
+  .stat .l { font-size: 0.8rem; color: var(--grey); }
+  input[type="search"], select {
+    padding: 0.45rem 0.6rem; border: 1px solid var(--line); border-radius: 6px;
+    font-size: 1rem; background: #fff;
+  }
+  .controls { display: flex; gap: 0.7rem; flex-wrap: wrap; margin: 0.8rem 0 1.2rem; }
+  .v-ja { color: var(--green); font-weight: 600; }
+  .v-nei { color: var(--red); font-weight: 600; }
+  .v-hja { color: var(--grey); }
+</style>

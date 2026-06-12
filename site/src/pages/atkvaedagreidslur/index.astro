@@ -1,0 +1,18 @@
+---
+import Base from '../../layouts/Base.astro';
+import sessions from '../../data/sessions.json';
+import { url } from '../../lib/util';
+const ss = [...(sessions as any[])].reverse();
+---
+<Base title="Atkvæðagreiðslur">
+  <h1>Atkvæðagreiðslur</h1>
+  <p class="muted">Veldu löggjafarþing til að skoða allar atkvæðagreiðslur þess.</p>
+  <div class="cards">
+    {ss.map((s) => (
+      <a class="card" href={url(`/atkvaedagreidslur/${s.num}/`)}>
+        <h3>{s.num}. löggjafarþing</h3>
+        <span class="muted">{s.period}{s.start ? ` · sett ${s.start}` : ''}</span>
+      </a>
+    ))}
+  </div>
+</Base>

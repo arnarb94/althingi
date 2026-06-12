@@ -1,0 +1,50 @@
+---
+import Base from '../../layouts/Base.astro';
+import parties from '../../data/parties.json';
+import sessions from '../../data/sessions.json';
+import { fmtTime, pct, url } from '../../lib/util';
+
+interface PartySession {
+  lthing: number; members: number; seats: number; speeches: number; seconds: number;
+  ja: number; nei: number; sat_hja: number; bodadi_fjarvist: number;
+  fjarverandi: number; maeting: number | null;
+}
+interface Party { id: number; heiti: string | null; skammstofun: string | null; thing: PartySession[]; }
+
+const latest = Math.max(...(sessions as any[]).map((s) => s.num));
+const ps = (parties as Party[]).filter((p) => p.heiti);
+const totals = ps.map((p) => {
+  const t = p.thing.reduce(
+    (a, s) => ({ speeches: a.speeches + s.speeches, seconds: a.seconds + s.seconds }),
+    { speeches: 0, seconds: 0 }
+  );
+  const cur = p.thing.find((s) => s.lthing === latest);
+  return { p, t, cur };
+});
+totals.sort((a, b) => (b.cur?.seats ?? 0) - (a.cur?.seats ?? 0) || b.t.seconds - a.t.seconds);
+---
+<Base title="Þingflokkar">
+  <h1>Þingflokkar</h1>
+  <p class="muted">Flokkar sem hafa átt fulltrúa á Alþingi á tímabilinu.</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Flokkur</th><th class="num">Þingsæti á {latest}. þingi</th>
+        <th class="num">Þing alls</th><th class="num">Ræður alls</th>
+        <th class="num">Ræðutími alls</th><th class="num">Mæting ({latest}. þing)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {totals.map(({ p, t, cur }) => (
+        <tr>
+          <td><a href={url(`/flokkar/${p.id}/`)}>{p.heiti}</a></td>
+          <td class="num">{cur && cur.seats > 0 ? cur.seats : '–'}</td>
+          <td class="num">{p.thing.length}</td>
+          <td class="num">{t.speeches.toLocaleString('is')}</td>
+          <td class="num">{fmtTime(t.seconds)}</td>
+          <td class="num">{cur ? pct(cur.maeting) : '–'}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</Base>

@@ -1,0 +1,12 @@
+---
+import Base from '../../layouts/Base.astro';
+import MemberDirectory from '../../components/MemberDirectory.astro';
+import sessions from '../../data/sessions.json';
+
+const latest = Math.max(...(sessions as { num: number }[]).map((s) => s.num));
+---
+<Base title="Þingmenn">
+  <h1>Þingmenn</h1>
+  <p class="muted">Þingmenn á völdu löggjafarþingi ásamt tölfræði þess þings. Veldu þing eða „Öll þing“ fyrir samanlagða tölfræði. Smelltu á nafn fyrir nánari upplýsingar.</p>
+  <MemberDirectory lthing={latest} />
+</Base>

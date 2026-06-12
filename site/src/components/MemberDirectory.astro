@@ -1,0 +1,104 @@
+---
+import members from '../data/members.json';
+import ThingSelect from './ThingSelect.astro';
+import { latestSeat, memberTotals, fmtTime, pct, url, type Member, type SessionStats } from '../lib/util';
+
+interface Props { lthing: number | 'allt'; }
+const { lthing } = Astro.props;
+
+interface Row {
+  m: Member;
+  flokkur: string | null;
+  kjordaemi: string | null;
+  tegund: string | null;
+  speeches: number;
+  seconds: number;
+  maeting: number | null;
+  thingCount: number;
+}
+
+let rows: Row[];
+if (lthing === 'allt') {
+  rows = (members as Member[]).map((m) => {
+    const seat = latestSeat(m);
+    const t = memberTotals(m);
+    return {
+      m, flokkur: seat.flokkur, kjordaemi: seat.kjordaemi, tegund: null,
+      speeches: t.speeches, seconds: t.seconds, maeting: t.maeting, thingCount: m.thing.length,
+    };
+  });
+} else {
+  rows = (members as Member[])
+    .map((m) => ({ m, p: m.thing.find((p) => p.lthing === lthing) }))
+    .filter((x): x is { m: Member; p: SessionStats } => x.p != null)
+    .map(({ m, p }) => ({
+      m, flokkur: p.flokkur, kjordaemi: p.kjordaemi, tegund: p.tegund,
+      speeches: p.speeches, seconds: p.seconds, maeting: p.maeting, thingCount: m.thing.length,
+    }));
+}
+rows.sort((a, b) => (b.maeting ?? -1) - (a.maeting ?? -1) || a.m.nafn.localeCompare(b.m.nafn, 'is'));
+const parties = [...new Set(rows.map((r) => r.flokkur).filter(Boolean))].sort() as string[];
+const showRole = lthing !== 'allt';
+const adal = rows.filter((r) => r.tegund && r.tegund !== 'varamaður').length;
+const vara = rows.filter((r) => r.tegund === 'varamaður').length;
+---
+<div class="controls">
+  <ThingSelect selected={lthing} basePath="/thingmenn/" numPrefix="thing/" allLabel="Öll þing (samtals)" />
+  <input type="search" id="leit" placeholder="Leita að nafni…" />
+  <select id="flokkur">
+    <option value="">Allir flokkar</option>
+    {parties.map((p) => <option value={p}>{p}</option>)}
+  </select>
+</div>
+<p class="muted" id="fjoldi">{rows.length} þingmenn</p>
+{showRole && (
+  <p class="muted">
+    Þar af eru {adal} aðalmenn og {vara} varamenn sem tóku sæti tímabundið.
+    Aðalmenn geta verið fleiri en þingsætin 63 þar sem nýir taka við sætum á miðju þingi.
+    Listanum er raðað eftir mætingu í atkvæðagreiðslur.
+  </p>
+)}
+{!showRole && <p class="muted">Listanum er raðað eftir mætingu í atkvæðagreiðslur.</p>}
+<table id="tafla">
+  <thead>
+    <tr>
+      <th>Nafn</th><th>Flokkur</th><th>Kjördæmi</th>
+      {showRole && <th>Hlutverk</th>}
+      <th class="num">Þing</th><th class="num">Ræður</th>
+      <th class="num">Ræðutími</th><th class="num">Mæting</th>
+    </tr>
+  </thead>
+  <tbody>
+    {rows.map((r) => (
+      <tr data-nafn={r.m.nafn.toLowerCase()} data-flokkur={r.flokkur ?? ''}>
+        <td><a href={url(`/thingmenn/${r.m.id}/`)}>{r.m.nafn}</a></td>
+        <td>{r.flokkur ?? '–'}</td>
+        <td>{r.kjordaemi ?? '–'}</td>
+        {showRole && <td>{r.tegund ?? '–'}</td>}
+        <td class="num">{r.thingCount}</td>
+        <td class="num">{r.speeches.toLocaleString('is')}</td>
+        <td class="num">{fmtTime(r.seconds)}</td>
+        <td class="num">{pct(r.maeting)}</td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+<script>
+  const leit = document.getElementById('leit') as HTMLInputElement;
+  const flokkur = document.getElementById('flokkur') as HTMLSelectElement;
+  const fjoldi = document.getElementById('fjoldi') as HTMLElement;
+  const rows = Array.from(document.querySelectorAll<HTMLTableRowElement>('#tafla tbody tr'));
+  function apply() {
+    const q = leit.value.toLowerCase().trim();
+    const f = flokkur.value;
+    let n = 0;
+    for (const r of rows) {
+      const ok = (!q || r.dataset.nafn!.includes(q)) && (!f || r.dataset.flokkur === f);
+      r.style.display = ok ? '' : 'none';
+      if (ok) n++;
+    }
+    fjoldi.textContent = `${n} þingmenn`;
+  }
+  leit.addEventListener('input', apply);
+  flokkur.addEventListener('change', apply);
+</script>

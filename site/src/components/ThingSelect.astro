@@ -1,0 +1,37 @@
+---
+import sessions from '../data/sessions.json';
+import { url } from '../lib/util';
+
+interface Props {
+  selected: number | 'allt';
+  basePath: string;
+  numPrefix?: string;
+  allLabel?: string;
+}
+const { selected, basePath, numPrefix = '', allLabel } = Astro.props;
+const ss = [...(sessions as { num: number; period: string }[])].sort((a, b) => b.num - a.num);
+const latest = ss[0].num;
+function hrefFor(v: number | 'allt'): string {
+  if (v === latest) return url(basePath);
+  if (v === 'allt') return url(`${basePath}allt/`);
+  return url(`${basePath}${numPrefix}${v}/`);
+}
+---
+<label class="thing-select">
+  <span class="muted">Löggjafarþing:</span>
+  <select id="thing-val">
+    {ss.map((s) => (
+      <option value={hrefFor(s.num)} selected={selected === s.num}>
+        {s.num}. þing ({s.period})
+      </option>
+    ))}
+    {allLabel && <option value={hrefFor('allt')} selected={selected === 'allt'}>{allLabel}</option>}
+  </select>
+</label>
+<script>
+  const sel = document.getElementById('thing-val') as HTMLSelectElement;
+  sel.addEventListener('change', () => { window.location.href = sel.value; });
+</script>
+<style>
+  .thing-select { display: inline-flex; align-items: center; gap: 0.5rem; }
+</style>

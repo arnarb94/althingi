@@ -1,0 +1,16 @@
+---
+import Base from '../../layouts/Base.astro';
+import MalView from '../../components/MalView.astro';
+import sessions from '../../data/sessions.json';
+
+export function getStaticPaths() {
+  const latest = Math.max(...(sessions as any[]).map((s) => s.num));
+  return (sessions as any[])
+    .filter((s) => s.num !== latest)
+    .map((s) => ({ params: { lthing: String(s.num) }, props: { num: s.num } }));
+}
+const { num } = Astro.props as { num: number };
+---
+<Base title={`Þingmál ${num}. þings`}>
+  <MalView lthing={num} />
+</Base>
