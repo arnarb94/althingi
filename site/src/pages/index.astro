@@ -3,10 +3,11 @@ import Base from '../layouts/Base.astro';
 import members from '../data/members.json';
 import sessions from '../data/sessions.json';
 import parties from '../data/parties.json';
-import { memberTotals, fmtTime, pct, url, type Member } from '../lib/util';
+import { memberTotals, fmtTime, url, type Member } from '../lib/util';
 
 const ms = members as Member[];
-const latest = Math.max(...(sessions as any[]).map((s) => s.num));
+const ss = sessions as { num: number; period: string }[];
+const latest = Math.max(...ss.map((s) => s.num));
 const current = ms.filter((m) =>
   m.thing.some((p) => p.lthing === latest && p.tegund !== 'varamaður')
 );
@@ -14,7 +15,18 @@ const talkers = [...ms]
   .map((m) => ({ m, t: memberTotals(m) }))
   .sort((a, b) => b.t.seconds - a.t.seconds)
   .slice(0, 10);
-const totalVotes = ms.reduce((s, m) => s + memberTotals(m).atkvaedi_alls, 0);
+
+// topp 10 fyrir hvert þing, til að skipta á milli án endurhleðslu
+const byThing: Record<string, { id: number; nafn: string; speeches: number; seconds: number }[]> = {};
+for (const s of ss) {
+  byThing[String(s.num)] = ms
+    .map((m) => ({ m, p: m.thing.find((p) => p.lthing === s.num) }))
+    .filter((x): x is { m: Member; p: Member['thing'][number] } => x.p != null && x.p.seconds > 0)
+    .sort((a, b) => b.p.seconds - a.p.seconds)
+    .slice(0, 10)
+    .map(({ m, p }) => ({ id: m.id, nafn: m.nafn, speeches: p.speeches, seconds: p.seconds }));
+}
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
 ---
 <Base title="Forsíða">
   <h1>Alþingi í tölum</h1>
@@ -30,8 +42,18 @@ const totalVotes = ms.reduce((s, m) => s + memberTotals(m).atkvaedi_alls, 0);
     <div class="stat"><div class="v">{current.length}</div><div class="l">aðalmenn á {latest}. þingi</div></div>
   </div>
 
-  <h2>Mest töluðu þingmennirnir (samtals)</h2>
-  <table>
+  <h2>Mest töluðu þingmennirnir</h2>
+  <p>
+    <label>Löggjafarþing:
+      <select id="talkers-thing">
+        <option value="all" selected>Öll þing (samtals)</option>
+        {[...ss].sort((a, b) => b.num - a.num).map((s) => (
+          <option value={String(s.num)}>{s.num}. þing ({s.period})</option>
+        ))}
+      </select>
+    </label>
+  </p>
+  <table id="talkers">
     <thead><tr><th>Þingmaður</th><th class="num">Ræður</th><th class="num">Ræðutími</th></tr></thead>
     <tbody>
       {talkers.map(({ m, t }) => (
@@ -43,6 +65,36 @@ const totalVotes = ms.reduce((s, m) => s + memberTotals(m).atkvaedi_alls, 0);
       ))}
     </tbody>
   </table>
+
+  <script define:vars={{ byThing, base: BASE }}>
+    const sel = document.getElementById('talkers-thing');
+    const tbody = document.querySelector('#talkers tbody');
+    const original = tbody.innerHTML;
+    const fmt = (sec) => {
+      const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60);
+      return h > 0 ? `${h} klst ${m} mín` : `${m} mín`;
+    };
+    sel.addEventListener('change', () => {
+      if (sel.value === 'all') { tbody.innerHTML = original; return; }
+      tbody.innerHTML = '';
+      for (const r of byThing[sel.value] ?? []) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        const a = document.createElement('a');
+        a.href = `${base}/thingmenn/${r.id}/`;
+        a.textContent = r.nafn;
+        td.appendChild(a);
+        const td2 = document.createElement('td');
+        td2.className = 'num';
+        td2.textContent = r.speeches.toLocaleString('is');
+        const td3 = document.createElement('td');
+        td3.className = 'num';
+        td3.textContent = fmt(r.seconds);
+        tr.append(td, td2, td3);
+        tbody.appendChild(tr);
+      }
+    });
+  </script>
 
   <h2>Skoðaðu nánar</h2>
   <div class="cards">
