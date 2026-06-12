@@ -36,6 +36,7 @@ const loyaltyPool = [...mps].filter(
 );
 const mostLoyal = [...loyaltyPool].sort((a, b) => (b.p.med_flokki ?? 0) - (a.p.med_flokki ?? 0));
 const leastLoyal = [...loyaltyPool].sort((a, b) => (a.p.med_flokki ?? 0) - (b.p.med_flokki ?? 0));
+const maxDisloyalty = Math.max(...leastLoyal.map(({ p }) => 1 - (p.med_flokki ?? 0)), 0.0001);
 
 const partyRows = (parties as Party[])
   .map((f) => ({ f, p: f.thing.find((p) => p.lthing === lthing) }))
@@ -149,13 +150,14 @@ const maxTrendSec = Math.max(...trend.map((t) => t.seconds), 1);
 </table>
 
 <h2>Flokkshollusta – kjósa sjaldnast með eigin þingflokki</h2>
+<p class="muted">Hlutfall já/nei-atkvæða sem féllu gegn meirihluta eigin þingflokks. Aðalmenn með a.m.k. 50 já/nei-atkvæði.</p>
 <table class="chart">
   <tbody>
     {leastLoyal.map(({ m, p }, i) => (
       <tr class:list={[{ extra: i >= 10 }]}>
         <td class="label"><a href={url(`/thingmenn/${m.id}/`)}>{m.nafn}</a> <span class="muted">{p.flokkur ? `(${p.flokkur})` : ''}</span></td>
-        <td><div class="bar" title={`${m.nafn}: ${pct(p.med_flokki)} með flokki (${p.ja + p.nei} já/nei-atkvæði)`}><span style={`width:${(p.med_flokki ?? 0) * 100}%;background:var(--red)`}></span></div></td>
-        <td class="num val">{pct(p.med_flokki)}</td>
+        <td><div class="bar" title={`${m.nafn}: ${pct(1 - (p.med_flokki ?? 0))} gegn flokki (${p.ja + p.nei} já/nei-atkvæði)`}><span style={`width:${((1 - (p.med_flokki ?? 0)) / maxDisloyalty) * 100}%;background:var(--red)`}></span></div></td>
+        <td class="num val">{pct(1 - (p.med_flokki ?? 0))}</td>
       </tr>
     ))}
   </tbody>
