@@ -2,7 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import parties from '../../data/parties.json';
 import sessions from '../../data/sessions.json';
-import { fmtTime, pct } from '../../lib/util';
+import { fmtTime, pct, url } from '../../lib/util';
 
 interface PartySession {
   lthing: number; members: number; seats: number; speeches: number; seconds: number;
@@ -37,7 +37,7 @@ totals.sort((a, b) => (b.cur?.seats ?? 0) - (a.cur?.seats ?? 0) || b.t.seconds -
     <tbody>
       {totals.map(({ p, t, cur }) => (
         <tr>
-          <td><a href={`/flokkar/${p.id}/`}>{p.heiti}</a></td>
+          <td><a href={url(`/flokkar/${p.id}/`)}>{p.heiti}</a></td>
           <td class="num">{cur && cur.seats > 0 ? cur.seats : '–'}</td>
           <td class="num">{p.thing.length}</td>
           <td class="num">{t.speeches.toLocaleString('is')}</td>

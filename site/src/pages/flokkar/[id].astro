@@ -2,7 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import parties from '../../data/parties.json';
 import members from '../../data/members.json';
-import { fmtTime, pct, type Member } from '../../lib/util';
+import { fmtTime, pct, url, type Member } from '../../lib/util';
 
 export function getStaticPaths() {
   return (parties as any[])
@@ -50,7 +50,7 @@ const memberRows = (members as Member[])
     <tbody>
       {[...p.thing].reverse().map((s: any) => (
         <tr>
-          <td><a href={`/atkvaedagreidslur/${s.lthing}/`}>{s.lthing}.</a></td>
+          <td><a href={url(`/atkvaedagreidslur/${s.lthing}/`)}>{s.lthing}.</a></td>
           <td class="num">{s.seats > 0 ? s.seats : '–'}</td>
           <td class="num">{s.members}</td>
           <td class="num">{s.speeches.toLocaleString('is')}</td>
@@ -75,7 +75,7 @@ const memberRows = (members as Member[])
     <tbody>
       {memberRows.map((r: any) => (
         <tr>
-          <td><a href={`/thingmenn/${r.m.id}/`}>{r.m.nafn}</a></td>
+          <td><a href={url(`/thingmenn/${r.m.id}/`)}>{r.m.nafn}</a></td>
           <td class="muted">{r.lthings.join(', ')}</td>
           <td class="num">{r.speeches.toLocaleString('is')}</td>
           <td class="num">{fmtTime(r.seconds)}</td>

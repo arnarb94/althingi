@@ -3,7 +3,7 @@ import members from '../data/members.json';
 import parties from '../data/parties.json';
 import sessions from '../data/sessions.json';
 import ThingSelect from './ThingSelect.astro';
-import { fmtTime, pct, type Member } from '../lib/util';
+import { fmtTime, pct, url, type Member } from '../lib/util';
 
 interface Props { lthing: number; }
 const { lthing } = Astro.props;
@@ -31,6 +31,12 @@ const topAttendance = [...mps]
   .filter((x) => x.p.tegund !== 'varamaður' && x.p.atkvaedi_alls >= 50)
   .sort((a, b) => (b.p.maeting ?? 0) - (a.p.maeting ?? 0))
   .slice(0, 10);
+
+const loyaltyPool = [...mps].filter(
+  (x) => x.p.tegund !== 'varamaður' && x.p.ja + x.p.nei >= 50 && x.p.med_flokki != null
+);
+const mostLoyal = [...loyaltyPool].sort((a, b) => (b.p.med_flokki ?? 0) - (a.p.med_flokki ?? 0)).slice(0, 10);
+const leastLoyal = [...loyaltyPool].sort((a, b) => (a.p.med_flokki ?? 0) - (b.p.med_flokki ?? 0)).slice(0, 10);
 
 const partyRows = (parties as Party[])
   .map((f) => ({ f, p: f.thing.find((p) => p.lthing === lthing) }))
@@ -65,8 +71,8 @@ const maxTrendSec = Math.max(...trend.map((t) => t.seconds), 1);
   <tbody>
     {partyRows.map(({ f, p }, i) => (
       <tr>
-        <td class="label"><a href={`/flokkar/${f.id}/`}>{f.heiti}</a></td>
-        <td><div class="bar"><span style={`width:${(p.seconds / maxPartySec) * 100}%;background:${PALETTE[i % PALETTE.length]}`}></span></div></td>
+        <td class="label"><a href={url(`/flokkar/${f.id}/`)}>{f.heiti}</a></td>
+        <td><div class="bar" title={`${f.heiti}: ${fmtTime(p.seconds)} í ${p.speeches.toLocaleString('is')} ræðum`}><span style={`width:${(p.seconds / maxPartySec) * 100}%;background:${PALETTE[i % PALETTE.length]}`}></span></div></td>
         <td class="num val">{fmtTime(p.seconds)}</td>
       </tr>
     ))}
@@ -82,8 +88,8 @@ const maxTrendSec = Math.max(...trend.map((t) => t.seconds), 1);
   <tbody>
     {seatRows.map(({ f, p }, i) => (
       <tr>
-        <td class="label"><a href={`/flokkar/${f.id}/`}>{f.heiti}</a></td>
-        <td><div class="bar"><span style={`width:${(p.seats / maxPartySeats) * 100}%;background:${PALETTE[i % PALETTE.length]}`}></span></div></td>
+        <td class="label"><a href={url(`/flokkar/${f.id}/`)}>{f.heiti}</a></td>
+        <td><div class="bar" title={`${f.heiti}: ${p.seats} þingsæti af 63`}><span style={`width:${(p.seats / maxPartySeats) * 100}%;background:${PALETTE[i % PALETTE.length]}`}></span></div></td>
         <td class="num val">{p.seats}</td>
       </tr>
     ))}
@@ -95,8 +101,8 @@ const maxTrendSec = Math.max(...trend.map((t) => t.seconds), 1);
   <tbody>
     {[...partyRows].sort((a, b) => (b.p.maeting ?? 0) - (a.p.maeting ?? 0)).map(({ f, p }) => (
       <tr>
-        <td class="label"><a href={`/flokkar/${f.id}/`}>{f.heiti}</a></td>
-        <td><div class="bar"><span style={`width:${(p.maeting ?? 0) * 100}%;background:var(--green)`}></span></div></td>
+        <td class="label"><a href={url(`/flokkar/${f.id}/`)}>{f.heiti}</a></td>
+        <td><div class="bar" title={`${f.heiti}: mæting ${pct(p.maeting)}`}><span style={`width:${(p.maeting ?? 0) * 100}%;background:var(--green)`}></span></div></td>
         <td class="num val">{pct(p.maeting)}</td>
       </tr>
     ))}
@@ -108,8 +114,8 @@ const maxTrendSec = Math.max(...trend.map((t) => t.seconds), 1);
   <tbody>
     {topSpeakers.map(({ m, p }) => (
       <tr>
-        <td class="label"><a href={`/thingmenn/${m.id}/`}>{m.nafn}</a> <span class="muted">{p.flokkur ? `(${p.flokkur})` : ''}</span></td>
-        <td><div class="bar"><span style={`width:${(p.seconds / maxSpeakerSec) * 100}%`}></span></div></td>
+        <td class="label"><a href={url(`/thingmenn/${m.id}/`)}>{m.nafn}</a> <span class="muted">{p.flokkur ? `(${p.flokkur})` : ''}</span></td>
+        <td><div class="bar" title={`${m.nafn}: ${fmtTime(p.seconds)} í ${p.speeches.toLocaleString('is')} ræðum`}><span style={`width:${(p.seconds / maxSpeakerSec) * 100}%`}></span></div></td>
         <td class="num val">{fmtTime(p.seconds)}</td>
       </tr>
     ))}
@@ -121,9 +127,36 @@ const maxTrendSec = Math.max(...trend.map((t) => t.seconds), 1);
   <tbody>
     {topAttendance.map(({ m, p }) => (
       <tr>
-        <td class="label"><a href={`/thingmenn/${m.id}/`}>{m.nafn}</a> <span class="muted">{p.flokkur ? `(${p.flokkur})` : ''}</span></td>
-        <td><div class="bar"><span style={`width:${(p.maeting ?? 0) * 100}%;background:var(--green)`}></span></div></td>
+        <td class="label"><a href={url(`/thingmenn/${m.id}/`)}>{m.nafn}</a> <span class="muted">{p.flokkur ? `(${p.flokkur})` : ''}</span></td>
+        <td><div class="bar" title={`${m.nafn}: mæting ${pct(p.maeting)} (${p.atkvaedi_alls} atkvæðagreiðslur)`}><span style={`width:${(p.maeting ?? 0) * 100}%;background:var(--green)`}></span></div></td>
         <td class="num val">{pct(p.maeting)}</td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+
+<h2>Flokkshollusta – kjósa oftast með eigin þingflokki</h2>
+<p class="muted">Hlutfall já/nei-atkvæða sem féllu með meirihluta eigin þingflokks. Aðalmenn með a.m.k. 50 já/nei-atkvæði.</p>
+<table class="chart">
+  <tbody>
+    {mostLoyal.map(({ m, p }) => (
+      <tr>
+        <td class="label"><a href={url(`/thingmenn/${m.id}/`)}>{m.nafn}</a> <span class="muted">{p.flokkur ? `(${p.flokkur})` : ''}</span></td>
+        <td><div class="bar" title={`${m.nafn}: ${pct(p.med_flokki)} með flokki (${p.ja + p.nei} já/nei-atkvæði)`}><span style={`width:${(p.med_flokki ?? 0) * 100}%;background:var(--accent)`}></span></div></td>
+        <td class="num val">{pct(p.med_flokki)}</td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+
+<h2>Flokkshollusta – kjósa sjaldnast með eigin þingflokki</h2>
+<table class="chart">
+  <tbody>
+    {leastLoyal.map(({ m, p }) => (
+      <tr>
+        <td class="label"><a href={url(`/thingmenn/${m.id}/`)}>{m.nafn}</a> <span class="muted">{p.flokkur ? `(${p.flokkur})` : ''}</span></td>
+        <td><div class="bar" title={`${m.nafn}: ${pct(p.med_flokki)} með flokki (${p.ja + p.nei} já/nei-atkvæði)`}><span style={`width:${(p.med_flokki ?? 0) * 100}%;background:var(--red)`}></span></div></td>
+        <td class="num val">{pct(p.med_flokki)}</td>
       </tr>
     ))}
   </tbody>
@@ -134,16 +167,49 @@ const maxTrendSec = Math.max(...trend.map((t) => t.seconds), 1);
   <tbody>
     {trend.map((t) => (
       <tr class:list={[{ current: t.num === lthing }]}>
-        <td class="label">{t.num}. þing <span class="muted">({t.period})</span></td>
-        <td><div class="bar"><span style={`width:${(t.seconds / maxTrendSec) * 100}%`}></span></div></td>
+        <td class="label"><a href={url(t.num === ss.reduce((m2, s) => Math.max(m2, s.num), 0) ? '/tolfraedi/' : `/tolfraedi/${t.num}/`)}>{t.num}. þing</a> <span class="muted">({t.period})</span></td>
+        <td><div class="bar" title={`${t.num}. þing: ${fmtTime(t.seconds)} í ${t.speeches.toLocaleString('is')} ræðum`}><span style={`width:${(t.seconds / maxTrendSec) * 100}%`}></span></div></td>
         <td class="num val">{fmtTime(t.seconds)} · {t.speeches.toLocaleString('is')} ræður</td>
       </tr>
     ))}
   </tbody>
 </table>
 
+<script>
+  // gerir gröfin gagnvirk: raða eftir gildi eða nafni
+  for (const table of document.querySelectorAll('table.chart')) {
+    const rows = [...table.querySelectorAll('tbody tr')];
+    if (rows.length < 3) continue;
+    const original = [...rows];
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'sort-toggle';
+    btn.textContent = 'Raða eftir nafni ⇅';
+    let byName = false;
+    btn.addEventListener('click', () => {
+      byName = !byName;
+      btn.textContent = byName ? 'Raða eftir gildi ⇅' : 'Raða eftir nafni ⇅';
+      const tbody = table.querySelector('tbody');
+      const ordered = byName
+        ? [...rows].sort((a, b) =>
+            (a.querySelector('.label')?.textContent ?? '').trim().localeCompare(
+              (b.querySelector('.label')?.textContent ?? '').trim(), 'is'))
+        : original;
+      for (const r of ordered) tbody.appendChild(r);
+    });
+    table.before(btn);
+  }
+</script>
+
 <style>
   .chart td { border-bottom: none; padding: 0.25rem 0.6rem; }
+  .chart tr:hover .bar { outline: 1px solid var(--ink); }
+  .sort-toggle {
+    font: inherit; font-size: 0.8rem; color: var(--accent);
+    background: none; border: 1px solid var(--line); border-radius: 4px;
+    padding: 0.1rem 0.5rem; cursor: pointer; margin-bottom: 0.3rem;
+  }
+  .sort-toggle:hover { border-color: var(--accent); }
   .chart .label { width: 30%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 0; }
   .chart .val { width: 12rem; white-space: nowrap; }
   .chart .bar { height: 0.9rem; }

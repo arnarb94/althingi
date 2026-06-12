@@ -1,7 +1,8 @@
 ---
 import Base from '../../layouts/Base.astro';
 import members from '../../data/members.json';
-import { memberTotals, latestSeat, fmtTime, pct, type Member } from '../../lib/util';
+import sessions from '../../data/sessions.json';
+import { memberTotals, latestSeat, fmtTime, pct, url, BASE, type Member } from '../../lib/util';
 
 export function getStaticPaths() {
   return (members as Member[]).map((m) => ({ params: { id: String(m.id) }, props: { m } }));
@@ -10,6 +11,8 @@ const { m } = Astro.props as { m: Member };
 const t = memberTotals(m);
 const seat = latestSeat(m);
 const maxSeconds = Math.max(...m.thing.map((p) => p.seconds), 1);
+const latestThing = Math.max(...(sessions as { num: number }[]).map((s) => s.num));
+const voteThings = [...m.thing].filter((p) => p.atkvaedi_alls > 0).map((p) => p.lthing).sort((a, b) => b - a);
 ---
 <Base title={m.nafn}>
   <h1>{m.nafn}</h1>
@@ -40,7 +43,7 @@ const maxSeconds = Math.max(...m.thing.map((p) => p.seconds), 1);
     <tbody>
       {[...m.thing].reverse().map((p) => (
         <tr>
-          <td><a href={`/atkvaedagreidslur/${p.lthing}/`}>{p.lthing}.</a></td>
+          <td><a href={url(`/atkvaedagreidslur/${p.lthing}/`)}>{p.lthing}.</a></td>
           <td>{p.flokkur ?? '–'}</td>
           <td>{p.tegund ?? '–'}</td>
           <td class="num">{p.speeches.toLocaleString('is')}</td>
@@ -59,6 +62,103 @@ const maxSeconds = Math.max(...m.thing.map((p) => p.seconds), 1);
     „Mæting“ = hlutfall atkvæðagreiðslna þar sem þingmaðurinn var viðstaddur (já, nei eða sat hjá).
     „Með flokki“ = hlutfall já/nei-atkvæða sem féllu með meirihluta eigin þingflokks.
   </p>
+
+  {voteThings.length > 0 && (
+    <>
+      <h2>Atkvæði í einstökum málum</h2>
+      <div class="controls">
+        <label>
+          <span class="muted">Löggjafarþing:</span>
+          <select id="atkv-thing">
+            {voteThings.map((lt) => <option value={lt}>{lt}. þing</option>)}
+          </select>
+        </label>
+        <input type="search" id="atkv-leit" placeholder="Leita að máli…" />
+      </div>
+      <div id="atkv-listi" class="muted">Sæki gögn…</div>
+      <script define:vars={{ mid: m.id, base: BASE, latestThing }}>
+        const VOTE_LABEL = { j: 'já', n: 'nei', g: 'sat hjá', b: 'boðaði fjarvist', f: 'fjarverandi' };
+        const VOTE_CLASS = { j: 'v-ja', n: 'v-nei', g: 'v-hja', b: 'muted', f: 'muted' };
+        const sel = document.getElementById('atkv-thing');
+        const leit = document.getElementById('atkv-leit');
+        const out = document.getElementById('atkv-listi');
+        const cache = {};
+
+        function render() {
+          const data = cache[sel.value];
+          if (!data) return;
+          const q = leit.value.toLowerCase().trim();
+          const rows = data.atkvaedagreidslur.filter(
+            (v) => v.atkv && v.atkv[mid] && (!q || (v.mal || '').toLowerCase().includes(q))
+          );
+          out.classList.remove('muted');
+          out.innerHTML = '';
+          const info = document.createElement('p');
+          info.className = 'muted';
+          info.textContent = `${rows.length} atkvæðagreiðslur með atkvæði þingmannsins`;
+          out.appendChild(info);
+          const table = document.createElement('table');
+          const thead = document.createElement('thead');
+          const hr = document.createElement('tr');
+          for (const h of ['Dags.', 'Mál', 'Tegund', 'Atkvæði', 'Úrslit']) {
+            const th = document.createElement('th');
+            th.textContent = h;
+            hr.appendChild(th);
+          }
+          thead.appendChild(hr);
+          table.appendChild(thead);
+          const tb = document.createElement('tbody');
+          for (const v of rows.slice(0, 300)) {
+            const tr = document.createElement('tr');
+            const tdD = document.createElement('td');
+            tdD.className = 'muted';
+            tdD.style.whiteSpace = 'nowrap';
+            tdD.textContent = v.timi ? v.timi.slice(0, 10) : '';
+            const tdM = document.createElement('td');
+            const a = document.createElement('a');
+            a.href = `${base}/mal/${Number(sel.value) === latestThing ? '' : sel.value + '/'}#m${v.malsnr}`;
+            a.textContent = v.mal ?? 'Óþekkt mál';
+            tdM.appendChild(a);
+            const tdT = document.createElement('td');
+            tdT.className = 'muted';
+            tdT.textContent = v.tegund ?? '';
+            const tdA = document.createElement('td');
+            const code = v.atkv[mid];
+            tdA.className = VOTE_CLASS[code] ?? '';
+            tdA.textContent = VOTE_LABEL[code] ?? code;
+            const tdU = document.createElement('td');
+            tdU.className = 'muted';
+            tdU.textContent = `já ${v.ja ?? 0} – nei ${v.nei ?? 0} (${v.nidurstada ?? 'óþekkt'})`;
+            tr.append(tdD, tdM, tdT, tdA, tdU);
+            tb.appendChild(tr);
+          }
+          table.appendChild(tb);
+          out.appendChild(table);
+          if (rows.length > 300) {
+            const more = document.createElement('p');
+            more.className = 'muted';
+            more.textContent = `Sýni fyrstu 300 af ${rows.length} — notaðu leitina til að þrengja.`;
+            out.appendChild(more);
+          }
+        }
+
+        function load() {
+          const lt = sel.value;
+          if (cache[lt]) return render();
+          out.classList.add('muted');
+          out.textContent = 'Sæki gögn…';
+          fetch(`${base}/data/votes_${lt}.json`)
+            .then((r) => r.json())
+            .then((d) => { cache[lt] = d; render(); })
+            .catch(() => (out.textContent = 'Ekki tókst að sækja gögn.'));
+        }
+
+        sel.addEventListener('change', load);
+        leit.addEventListener('input', render);
+        load();
+      </script>
+    </>
+  )}
 
   <h2>Ræðutími eftir þingum</h2>
   <table>

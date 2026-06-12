@@ -1,7 +1,7 @@
 ---
 import members from '../data/members.json';
 import ThingSelect from './ThingSelect.astro';
-import { latestSeat, memberTotals, fmtTime, pct, type Member, type SessionStats } from '../lib/util';
+import { latestSeat, memberTotals, fmtTime, pct, url, type Member, type SessionStats } from '../lib/util';
 
 interface Props { lthing: number | 'allt'; }
 const { lthing } = Astro.props;
@@ -71,7 +71,7 @@ const vara = rows.filter((r) => r.tegund === 'varamaður').length;
   <tbody>
     {rows.map((r) => (
       <tr data-nafn={r.m.nafn.toLowerCase()} data-flokkur={r.flokkur ?? ''}>
-        <td><a href={`/thingmenn/${r.m.id}/`}>{r.m.nafn}</a></td>
+        <td><a href={url(`/thingmenn/${r.m.id}/`)}>{r.m.nafn}</a></td>
         <td>{r.flokkur ?? '–'}</td>
         <td>{r.kjordaemi ?? '–'}</td>
         {showRole && <td>{r.tegund ?? '–'}</td>}

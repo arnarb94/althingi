@@ -43,12 +43,12 @@ def fetch(url: str, dest: Path, force: bool = False) -> Path:
     return dest
 
 
-def fetch_session(lthing: int) -> None:
+def fetch_session(lthing: int, force_lists: bool = False) -> None:
     d = CACHE / str(lthing)
     print(f"þing {lthing}: grunnskrár")
-    fetch(f"{BASE}/thingmenn/?lthing={lthing}", d / "thingmenn.xml")
-    fetch(f"{BASE}/raedulisti/?lthing={lthing}", d / "raedulisti.xml")
-    fetch(f"{BASE}/atkvaedagreidslur/?lthing={lthing}", d / "atkvaedagreidslur.xml")
+    fetch(f"{BASE}/thingmenn/?lthing={lthing}", d / "thingmenn.xml", force=force_lists)
+    fetch(f"{BASE}/raedulisti/?lthing={lthing}", d / "raedulisti.xml", force=force_lists)
+    fetch(f"{BASE}/atkvaedagreidslur/?lthing={lthing}", d / "atkvaedagreidslur.xml", force=force_lists)
 
     # einstakar atkvæðagreiðslur
     root = ET.parse(d / "atkvaedagreidslur.xml").getroot()
@@ -71,15 +71,21 @@ def fetch_session(lthing: int) -> None:
                 print(f"þing {lthing}: {i + 1}/{len(todo)}")
 
 
-def fetch_members(lthing_range) -> None:
+def fetch_members(lthing_range, force_latest: bool = False) -> None:
     ids = set()
+    latest_ids = set()
+    last = max(lthing_range)
     for lthing in lthing_range:
         f = CACHE / str(lthing) / "thingmenn.xml"
         if not f.exists():
             continue
         root = ET.parse(f).getroot()
-        ids.update(el.get("id") for el in root.iter("þingmaður"))
+        cur = {el.get("id") for el in root.iter("þingmaður")}
+        ids.update(cur)
+        if lthing == last:
+            latest_ids = cur
     ids.discard(None)
+    latest_ids.discard(None)
     print(f"{len(ids)} þingmenn: sæki þingsetu")
     with cf.ThreadPoolExecutor(max_workers=8) as ex:
         futs = [
@@ -87,6 +93,7 @@ def fetch_members(lthing_range) -> None:
                 fetch,
                 f"{BASE}/thingmenn/thingmadur/thingseta/?nr={i}",
                 CACHE / "thingmenn" / f"thingseta_{i}.xml",
+                force_latest and i in latest_ids,
             )
             for i in sorted(ids)
         ]
@@ -101,8 +108,8 @@ def main() -> None:
     fetch(f"{BASE}/thingflokkar/", CACHE / "thingflokkar.xml", force=True)
     rng = range(first, last + 1)
     for lthing in rng:
-        fetch_session(lthing)
-    fetch_members(rng)
+        fetch_session(lthing, force_lists=lthing == last)
+    fetch_members(rng, force_latest=True)
     print("lokið")
 
 

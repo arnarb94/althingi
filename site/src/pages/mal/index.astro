@@ -1,0 +1,10 @@
+---
+import Base from '../../layouts/Base.astro';
+import MalView from '../../components/MalView.astro';
+import sessions from '../../data/sessions.json';
+
+const latest = Math.max(...(sessions as any[]).map((s) => s.num));
+---
+<Base title="Þingmál">
+  <MalView lthing={latest} />
+</Base>

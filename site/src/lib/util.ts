@@ -1,3 +1,7 @@
+// grunnslóð vefsins (t.d. /althingi á GitHub Pages), án loka-skástriks
+export const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
+export const url = (p: string) => BASE + p;
+
 export function fmtTime(seconds: number): string {
   const totalMinutes = Math.round(seconds / 60);
   const h = Math.floor(totalMinutes / 60);

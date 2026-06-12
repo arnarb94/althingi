@@ -3,7 +3,7 @@ import Base from '../layouts/Base.astro';
 import members from '../data/members.json';
 import sessions from '../data/sessions.json';
 import parties from '../data/parties.json';
-import { memberTotals, fmtTime, pct, type Member } from '../lib/util';
+import { memberTotals, fmtTime, pct, url, type Member } from '../lib/util';
 
 const ms = members as Member[];
 const latest = Math.max(...(sessions as any[]).map((s) => s.num));
@@ -36,7 +36,7 @@ const totalVotes = ms.reduce((s, m) => s + memberTotals(m).atkvaedi_alls, 0);
     <tbody>
       {talkers.map(({ m, t }) => (
         <tr>
-          <td><a href={`/thingmenn/${m.id}/`}>{m.nafn}</a></td>
+          <td><a href={url(`/thingmenn/${m.id}/`)}>{m.nafn}</a></td>
           <td class="num">{t.speeches.toLocaleString('is')}</td>
           <td class="num">{fmtTime(t.seconds)}</td>
         </tr>
@@ -46,9 +46,10 @@ const totalVotes = ms.reduce((s, m) => s + memberTotals(m).atkvaedi_alls, 0);
 
   <h2>Skoðaðu nánar</h2>
   <div class="cards">
-    <a class="card" href="/thingmenn/"><h3>Þingmenn</h3><span class="muted">Mæting, ræðutími og atkvæði hvers þingmanns</span></a>
-    <a class="card" href="/flokkar/"><h3>Þingflokkar</h3><span class="muted">Samanburður flokka eftir þingum</span></a>
-    <a class="card" href="/atkvaedagreidslur/"><h3>Atkvæðagreiðslur</h3><span class="muted">Allar atkvæðagreiðslur með atkvæðum hvers þingmanns</span></a>
-    <a class="card" href="/tolfraedi/"><h3>Tölfræði</h3><span class="muted">Gröf um ræðutíma, þingsæti og mætingu eftir þingum</span></a>
+    <a class="card" href={url('/thingmenn/')}><h3>Þingmenn</h3><span class="muted">Mæting, ræðutími og atkvæði hvers þingmanns</span></a>
+    <a class="card" href={url('/flokkar/')}><h3>Þingflokkar</h3><span class="muted">Samanburður flokka eftir þingum</span></a>
+    <a class="card" href={url('/atkvaedagreidslur/')}><h3>Atkvæðagreiðslur</h3><span class="muted">Allar atkvæðagreiðslur með atkvæðum hvers þingmanns</span></a>
+    <a class="card" href={url('/mal/')}><h3>Þingmál</h3><span class="muted">Mál hvers þings og atkvæðagreiðslur þeirra</span></a>
+    <a class="card" href={url('/tolfraedi/')}><h3>Tölfræði</h3><span class="muted">Gröf um ræðutíma, þingsæti og mætingu eftir þingum</span></a>
   </div>
 </Base>

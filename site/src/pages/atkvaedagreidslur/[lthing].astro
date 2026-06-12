@@ -1,11 +1,13 @@
 ---
 import Base from '../../layouts/Base.astro';
 import sessions from '../../data/sessions.json';
+import { BASE } from '../../lib/util';
 
 export function getStaticPaths() {
   return (sessions as any[]).map((s) => ({ params: { lthing: String(s.num) }, props: { s } }));
 }
 const { s } = Astro.props as { s: any };
+const latestThing = Math.max(...(sessions as any[]).map((x) => x.num));
 ---
 <Base title={`Atkvæðagreiðslur ${s.num}. þings`}>
   <h1>Atkvæðagreiðslur – {s.num}. löggjafarþing ({s.period})</h1>
@@ -16,7 +18,7 @@ const { s } = Astro.props as { s: any };
   <div id="listi" class="muted">Sæki gögn…</div>
 
   <template id="row-template"></template>
-  <script define:vars={{ lthing: s.num }}>
+  <script define:vars={{ lthing: s.num, base: BASE, latestThing }}>
     const VOTE_LABEL = { j: 'já', n: 'nei', g: 'sat hjá', b: 'boðaði fjarvist', f: 'fjarverandi' };
     const VOTE_CLASS = { j: 'v-ja', n: 'v-nei', g: 'v-hja', b: 'muted', f: 'muted' };
     const el = document.getElementById('listi');
@@ -42,7 +44,14 @@ const { s } = Astro.props as { s: any };
         const sum = document.createElement('summary');
         sum.style.cursor = 'pointer';
         const strong = document.createElement('strong');
-        strong.textContent = v.mal ?? 'Óþekkt mál';
+        if (v.malsnr != null) {
+          const malLink = document.createElement('a');
+          malLink.href = `${base}/mal/${lthing === latestThing ? '' : lthing + '/'}#m${v.malsnr}`;
+          malLink.textContent = v.mal ?? 'Óþekkt mál';
+          strong.appendChild(malLink);
+        } else {
+          strong.textContent = v.mal ?? 'Óþekkt mál';
+        }
         sum.appendChild(strong);
         const meta = document.createElement('span');
         meta.className = 'muted';
@@ -89,7 +98,7 @@ const { s } = Astro.props as { s: any };
               const man = data.menn[mid] ?? {};
               const tdName = document.createElement('td');
               const link = document.createElement('a');
-              link.href = `/thingmenn/${encodeURIComponent(mid)}/`;
+              link.href = `${base}/thingmenn/${encodeURIComponent(mid)}/`;
               link.textContent = man.n ?? mid;
               tdName.appendChild(link);
               const tdParty = document.createElement('td');
@@ -116,7 +125,7 @@ const { s } = Astro.props as { s: any };
       el.appendChild(frag);
     }
 
-    fetch(`/data/votes_${lthing}.json`)
+    fetch(`${base}/data/votes_${lthing}.json`)
       .then((r) => r.json())
       .then((d) => {
         data = d;

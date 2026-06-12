@@ -1,0 +1,133 @@
+---
+import sessions from '../data/sessions.json';
+import ThingSelect from './ThingSelect.astro';
+import { BASE } from '../lib/util';
+
+interface Props { lthing: number; }
+const { lthing } = Astro.props;
+const session = (sessions as { num: number; period: string }[]).find((s) => s.num === lthing)!;
+---
+<h1>Þingmál – {lthing}. löggjafarþing ({session.period})</h1>
+<p class="muted">Mál sem komu til atkvæðagreiðslu á þinginu, ásamt öllum atkvæðagreiðslum hvers máls.</p>
+<div class="controls">
+  <ThingSelect selected={lthing} basePath="/mal/" />
+  <input type="search" id="leit" placeholder="Leita að máli…" />
+</div>
+<div id="listi" class="muted">Sæki gögn…</div>
+
+<script define:vars={{ lthing, base: BASE }}>
+  const el = document.getElementById('listi');
+  let groups;
+
+  function render() {
+    const q = document.getElementById('leit').value.toLowerCase().trim();
+    const rows = groups.filter((g) => !q || g.mal.toLowerCase().includes(q));
+    el.classList.remove('muted');
+    el.innerHTML = '';
+    const frag = document.createDocumentFragment();
+    const info = document.createElement('p');
+    info.className = 'muted';
+    info.textContent = `${rows.length} mál`;
+    frag.appendChild(info);
+    for (const g of rows.slice(0, 400)) {
+      const d = document.createElement('details');
+      d.className = 'card';
+      d.style.marginBottom = '0.5rem';
+      d.id = `m${g.malsnr}`;
+      const sum = document.createElement('summary');
+      sum.style.cursor = 'pointer';
+      const strong = document.createElement('strong');
+      strong.textContent = `${g.malsnr}. mál: ${g.mal}`;
+      sum.appendChild(strong);
+      const meta = document.createElement('span');
+      meta.className = 'muted';
+      meta.textContent = ` — ${g.votes.length} atkvæðagreiðslur`;
+      sum.appendChild(meta);
+      if (g.last) {
+        sum.appendChild(document.createTextNode(' — '));
+        const em = document.createElement('em');
+        em.textContent = g.last;
+        sum.appendChild(em);
+      }
+      d.appendChild(sum);
+      const body = document.createElement('div');
+      const ferill = document.createElement('p');
+      const fl = document.createElement('a');
+      fl.href = `https://www.althingi.is/thingstorf/thingmalalistar-eftir-thingum/ferill/?ltg=${lthing}&mnr=${g.malsnr}`;
+      fl.textContent = 'Ferill málsins á althingi.is';
+      ferill.appendChild(fl);
+      body.appendChild(ferill);
+      const table = document.createElement('table');
+      const thead = document.createElement('thead');
+      const hr = document.createElement('tr');
+      for (const h of ['Dags.', 'Tegund', 'Já', 'Nei', 'Sat hjá', 'Úrslit']) {
+        const th = document.createElement('th');
+        th.textContent = h;
+        hr.appendChild(th);
+      }
+      thead.appendChild(hr);
+      table.appendChild(thead);
+      const tb = document.createElement('tbody');
+      for (const v of g.votes) {
+        const tr = document.createElement('tr');
+        const cells = [
+          v.timi ? v.timi.slice(0, 10) : '',
+          v.tegund ?? '',
+          v.atkv ? String(v.ja ?? 0) : '–',
+          v.atkv ? String(v.nei ?? 0) : '–',
+          v.atkv ? String(v.sat_hja ?? 0) : '–',
+          v.nidurstada ?? '',
+        ];
+        cells.forEach((c, i) => {
+          const td = document.createElement('td');
+          td.textContent = c;
+          if (i === 2) td.className = 'v-ja';
+          if (i === 3) td.className = 'v-nei';
+          if (i === 4) td.className = 'v-hja';
+          tr.appendChild(td);
+        });
+        tb.appendChild(tr);
+      }
+      table.appendChild(tb);
+      body.appendChild(table);
+      d.appendChild(body);
+      frag.appendChild(d);
+    }
+    if (rows.length > 400) {
+      const more = document.createElement('p');
+      more.className = 'muted';
+      more.textContent = `Sýni fyrstu 400 af ${rows.length} — notaðu leitina til að þrengja.`;
+      frag.appendChild(more);
+    }
+    el.appendChild(frag);
+    const hash = window.location.hash.slice(1);
+    if (hash) {
+      const target = document.getElementById(hash);
+      if (target) {
+        target.open = true;
+        target.scrollIntoView();
+      }
+    }
+  }
+
+  fetch(`${base}/data/votes_${lthing}.json`)
+    .then((r) => r.json())
+    .then((d) => {
+      const byMal = new Map();
+      for (const v of d.atkvaedagreidslur) {
+        if (v.malsnr == null) continue;
+        if (!byMal.has(v.malsnr)) byMal.set(v.malsnr, { malsnr: v.malsnr, mal: v.mal ?? 'Óþekkt mál', votes: [] });
+        byMal.get(v.malsnr).votes.push(v);
+      }
+      groups = [...byMal.values()];
+      for (const g of groups) {
+        g.votes.sort((a, b) => (a.timi ?? '').localeCompare(b.timi ?? ''));
+        const withResult = [...g.votes].reverse().find((v) => v.nidurstada);
+        g.last = withResult ? withResult.nidurstada : null;
+      }
+      groups.sort((a, b) => a.malsnr - b.malsnr);
+      render();
+      document.getElementById('leit').addEventListener('input', render);
+    })
+    .catch(() => (el.textContent = 'Ekki tókst að sækja gögn.'));
+</script>

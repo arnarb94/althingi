@@ -1,5 +1,6 @@
 ---
 import sessions from '../data/sessions.json';
+import { url } from '../lib/util';
 
 interface Props {
   selected: number | 'allt';
@@ -11,9 +12,9 @@ const { selected, basePath, numPrefix = '', allLabel } = Astro.props;
 const ss = [...(sessions as { num: number; period: string }[])].sort((a, b) => b.num - a.num);
 const latest = ss[0].num;
 function hrefFor(v: number | 'allt'): string {
-  if (v === latest) return basePath;
-  if (v === 'allt') return `${basePath}allt/`;
-  return `${basePath}${numPrefix}${v}/`;
+  if (v === latest) return url(basePath);
+  if (v === 'allt') return url(`${basePath}allt/`);
+  return url(`${basePath}${numPrefix}${v}/`);
 }
 ---
 <label class="thing-select">
