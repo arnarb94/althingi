@@ -1,0 +1,12 @@
+---
+import Base from '../../layouts/Base.astro';
+import StatsView from '../../components/StatsView.astro';
+import sessions from '../../data/sessions.json';
+
+const latest = Math.max(...(sessions as { num: number }[]).map((s) => s.num));
+---
+<Base title="Tölfræði">
+  <h1>Tölfræði</h1>
+  <p class="muted">Myndræn tölfræði um ræðutíma, þingsæti og mætingu. Veldu löggjafarþing til að skoða önnur þing.</p>
+  <StatsView lthing={latest} />
+</Base>

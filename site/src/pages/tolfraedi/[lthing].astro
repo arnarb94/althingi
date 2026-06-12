@@ -1,0 +1,19 @@
+---
+import Base from '../../layouts/Base.astro';
+import StatsView from '../../components/StatsView.astro';
+import sessions from '../../data/sessions.json';
+
+export function getStaticPaths() {
+  const ss = sessions as { num: number }[];
+  const latest = Math.max(...ss.map((s) => s.num));
+  return ss
+    .filter((s) => s.num !== latest)
+    .map((s) => ({ params: { lthing: String(s.num) }, props: { lthing: s.num } }));
+}
+const { lthing } = Astro.props as { lthing: number };
+---
+<Base title={`Tölfræði – ${lthing}. þing`}>
+  <h1>Tölfræði – {lthing}. þing</h1>
+  <p class="muted">Myndræn tölfræði um ræðutíma, þingsæti og mætingu á {lthing}. löggjafarþingi.</p>
+  <StatsView lthing={lthing} />
+</Base>

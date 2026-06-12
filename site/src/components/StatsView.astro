@@ -1,0 +1,145 @@
+---
+import members from '../data/members.json';
+import parties from '../data/parties.json';
+import sessions from '../data/sessions.json';
+import ThingSelect from './ThingSelect.astro';
+import { fmtTime, pct, type Member } from '../lib/util';
+
+interface Props { lthing: number; }
+const { lthing } = Astro.props;
+
+interface PartySession {
+  lthing: number; members: number; speeches: number; seconds: number;
+  ja: number; nei: number; sat_hja: number; bodadi_fjarvist: number;
+  fjarverandi: number; maeting: number | null;
+}
+interface Party { id: number; heiti: string; skammstofun: string | null; thing: PartySession[]; }
+
+const ss = sessions as { num: number; period: string }[];
+const session = ss.find((s) => s.num === lthing)!;
+
+const PALETTE = ['#1e4f8f', '#2c7a3f', '#b03030', '#8a5a2b', '#5b3a8f', '#1f7a78', '#b0762c', '#7a1f4e', '#4a6b1f', '#444'];
+
+const mps = (members as Member[])
+  .map((m) => ({ m, p: m.thing.find((p) => p.lthing === lthing) }))
+  .filter((x): x is { m: Member; p: Member['thing'][number] } => x.p != null);
+
+const topSpeakers = [...mps].sort((a, b) => b.p.seconds - a.p.seconds).slice(0, 15);
+const maxSpeakerSec = Math.max(...topSpeakers.map((x) => x.p.seconds), 1);
+
+const topAttendance = [...mps]
+  .filter((x) => x.p.tegund !== 'varamaður' && x.p.atkvaedi_alls >= 50)
+  .sort((a, b) => (b.p.maeting ?? 0) - (a.p.maeting ?? 0))
+  .slice(0, 10);
+
+const partyRows = (parties as Party[])
+  .map((f) => ({ f, p: f.thing.find((p) => p.lthing === lthing) }))
+  .filter((x): x is { f: Party; p: PartySession } => x.p != null)
+  .sort((a, b) => b.p.seconds - a.p.seconds);
+const maxPartySec = Math.max(...partyRows.map((x) => x.p.seconds), 1);
+const maxPartyMembers = Math.max(...partyRows.map((x) => x.p.members), 1);
+
+const trend = ss
+  .map((s) => {
+    const ps = (parties as Party[]).flatMap((f) => f.thing.filter((p) => p.lthing === s.num));
+    return {
+      num: s.num,
+      period: s.period,
+      seconds: ps.reduce((t, p) => t + p.seconds, 0),
+      speeches: ps.reduce((t, p) => t + p.speeches, 0),
+    };
+  })
+  .sort((a, b) => a.num - b.num);
+const maxTrendSec = Math.max(...trend.map((t) => t.seconds), 1);
+---
+<div class="controls">
+  <ThingSelect selected={lthing} basePath="/tolfraedi/" />
+</div>
+<p class="muted">{lthing}. löggjafarþing ({session.period})</p>
+
+<h2>Ræðutími þingflokka</h2>
+<table class="chart">
+  <tbody>
+    {partyRows.map(({ f, p }, i) => (
+      <tr>
+        <td class="label"><a href={`/flokkar/${f.id}/`}>{f.heiti}</a></td>
+        <td><div class="bar"><span style={`width:${(p.seconds / maxPartySec) * 100}%;background:${PALETTE[i % PALETTE.length]}`}></span></div></td>
+        <td class="num val">{fmtTime(p.seconds)}</td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+
+<h2>Þingsæti eftir flokkum</h2>
+<table class="chart">
+  <tbody>
+    {[...partyRows].sort((a, b) => b.p.members - a.p.members).map(({ f, p }, i) => (
+      <tr>
+        <td class="label"><a href={`/flokkar/${f.id}/`}>{f.heiti}</a></td>
+        <td><div class="bar"><span style={`width:${(p.members / maxPartyMembers) * 100}%;background:${PALETTE[i % PALETTE.length]}`}></span></div></td>
+        <td class="num val">{p.members}</td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+
+<h2>Mæting þingflokka í atkvæðagreiðslur</h2>
+<table class="chart">
+  <tbody>
+    {[...partyRows].sort((a, b) => (b.p.maeting ?? 0) - (a.p.maeting ?? 0)).map(({ f, p }) => (
+      <tr>
+        <td class="label"><a href={`/flokkar/${f.id}/`}>{f.heiti}</a></td>
+        <td><div class="bar"><span style={`width:${(p.maeting ?? 0) * 100}%;background:var(--green)`}></span></div></td>
+        <td class="num val">{pct(p.maeting)}</td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+
+<h2>Mest töluðu þingmennirnir</h2>
+<table class="chart">
+  <tbody>
+    {topSpeakers.map(({ m, p }) => (
+      <tr>
+        <td class="label"><a href={`/thingmenn/${m.id}/`}>{m.nafn}</a> <span class="muted">{p.flokkur ? `(${p.flokkur})` : ''}</span></td>
+        <td><div class="bar"><span style={`width:${(p.seconds / maxSpeakerSec) * 100}%`}></span></div></td>
+        <td class="num val">{fmtTime(p.seconds)}</td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+
+<h2>Besta mætingin (aðalmenn, a.m.k. 50 atkvæðagreiðslur)</h2>
+<table class="chart">
+  <tbody>
+    {topAttendance.map(({ m, p }) => (
+      <tr>
+        <td class="label"><a href={`/thingmenn/${m.id}/`}>{m.nafn}</a> <span class="muted">{p.flokkur ? `(${p.flokkur})` : ''}</span></td>
+        <td><div class="bar"><span style={`width:${(p.maeting ?? 0) * 100}%;background:var(--green)`}></span></div></td>
+        <td class="num val">{pct(p.maeting)}</td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+
+<h2>Þróun ræðutíma eftir þingum</h2>
+<table class="chart">
+  <tbody>
+    {trend.map((t) => (
+      <tr class:list={[{ current: t.num === lthing }]}>
+        <td class="label">{t.num}. þing <span class="muted">({t.period})</span></td>
+        <td><div class="bar"><span style={`width:${(t.seconds / maxTrendSec) * 100}%`}></span></div></td>
+        <td class="num val">{fmtTime(t.seconds)} · {t.speeches.toLocaleString('is')} ræður</td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+
+<style>
+  .chart td { border-bottom: none; padding: 0.25rem 0.6rem; }
+  .chart .label { width: 30%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 0; }
+  .chart .val { width: 12rem; white-space: nowrap; }
+  .chart .bar { height: 0.9rem; }
+  .chart tr.current .label { font-weight: 700; }
+  h2 { margin-top: 2.2rem; }
+</style>
