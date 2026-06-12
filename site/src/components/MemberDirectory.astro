@@ -36,9 +36,11 @@ if (lthing === 'allt') {
       speeches: p.speeches, seconds: p.seconds, maeting: p.maeting, thingCount: m.thing.length,
     }));
 }
-rows.sort((a, b) => a.m.nafn.localeCompare(b.m.nafn, 'is'));
+rows.sort((a, b) => (b.maeting ?? -1) - (a.maeting ?? -1) || a.m.nafn.localeCompare(b.m.nafn, 'is'));
 const parties = [...new Set(rows.map((r) => r.flokkur).filter(Boolean))].sort() as string[];
 const showRole = lthing !== 'allt';
+const adal = rows.filter((r) => r.tegund && r.tegund !== 'varamaður').length;
+const vara = rows.filter((r) => r.tegund === 'varamaður').length;
 ---
 <div class="controls">
   <ThingSelect selected={lthing} basePath="/thingmenn/" numPrefix="thing/" allLabel="Öll þing (samtals)" />
@@ -49,6 +51,14 @@ const showRole = lthing !== 'allt';
   </select>
 </div>
 <p class="muted" id="fjoldi">{rows.length} þingmenn</p>
+{showRole && (
+  <p class="muted">
+    Þar af eru {adal} aðalmenn og {vara} varamenn sem tóku sæti tímabundið.
+    Aðalmenn geta verið fleiri en þingsætin 63 þar sem nýir taka við sætum á miðju þingi.
+    Listanum er raðað eftir mætingu í atkvæðagreiðslur.
+  </p>
+)}
+{!showRole && <p class="muted">Listanum er raðað eftir mætingu í atkvæðagreiðslur.</p>}
 <table id="tafla">
   <thead>
     <tr>

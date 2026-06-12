@@ -37,6 +37,8 @@ const partyRows = (parties as Party[])
   .filter((x): x is { f: Party; p: PartySession } => x.p != null)
   .sort((a, b) => b.p.seconds - a.p.seconds);
 const maxPartySec = Math.max(...partyRows.map((x) => x.p.seconds), 1);
+const adal = mps.filter((x) => x.p.tegund && x.p.tegund !== 'varamaður').length;
+const vara = mps.filter((x) => x.p.tegund === 'varamaður').length;
 const seatRows = partyRows.filter((x) => x.p.seats > 0).sort((a, b) => b.p.seats - a.p.seats);
 const maxPartySeats = Math.max(...seatRows.map((x) => x.p.seats), 1);
 
@@ -72,7 +74,10 @@ const maxTrendSec = Math.max(...trend.map((t) => t.seconds), 1);
 </table>
 
 <h2>Þingsæti eftir flokkum</h2>
-<p class="muted">Sætaskipan við lok þingsins (63 sæti alls). Varamenn ekki taldir með.</p>
+<p class="muted">
+  Sætaskipan við lok þingsins (63 sæti alls). Varamenn ekki taldir með.
+  Alls sátu {mps.length} á þinginu: {adal} aðalmenn og {vara} varamenn sem tóku sæti tímabundið.
+</p>
 <table class="chart">
   <tbody>
     {seatRows.map(({ f, p }, i) => (
